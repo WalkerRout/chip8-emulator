@@ -7,7 +7,7 @@ CFLAGS = -Wall -Wextra -Wshadow #ALL WARNINGS!
 
 ifeq ($(UNAME), Linux)
   LIBS = -lSDL2main -lSDL2
-  INCS = 
+  INCS = -I"include/"
 else
   LIBS = -L"C:/Development/SDL2_MinGW_64Bit/lib" -lmingw32 -lSDL2main -lSDL2
   INCS = -I"include/" -I"C:/Development/SDL2_MinGW_64Bit/include"
