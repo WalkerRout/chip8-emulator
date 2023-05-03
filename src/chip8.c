@@ -83,7 +83,7 @@ static void step_cycle(Chip8 *cpu) {
       cpu->sp -= 1;
       cpu->pc = cpu->stack[cpu->sp];
     } else {
-      eprintf("Unimplemented system instruction called...\n");
+      eprintf("Error - TODO system instruction 0x%.4x\n", cpu->opcode);
     }
 
     chip8_increment_pc(cpu);
