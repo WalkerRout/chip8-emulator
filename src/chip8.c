@@ -83,7 +83,7 @@ static void step_cycle(Chip8 *cpu) {
       cpu->sp -= 1;
       cpu->pc = cpu->stack[cpu->sp];
     } else {
-      fprintf(stderr, "Unimplemented system instruction called...\n");
+      eprintf("Unimplemented system instruction called...\n");
     }
 
     chip8_increment_pc(cpu);
@@ -181,7 +181,7 @@ static void step_cycle(Chip8 *cpu) {
     x = (cpu->opcode & 0x0F00) >> 8;
     y = (cpu->opcode & 0x00F0) >> 4;
     uint8_t height = cpu->opcode & 0x000F;
-    
+
     uint8_t reg_x = cpu->registers[x];
     uint8_t reg_y = cpu->registers[y];
 
@@ -238,7 +238,7 @@ static void step_cycle(Chip8 *cpu) {
 void chip8_load_rom(Chip8 *self, const char *file_path) {
   FILE *file = fopen(file_path, "r");
   if(file == NULL) {
-    printf("Error - failed to load file `%s`\n", file_path);
+    eprintf("Error - failed to load file `%s`\n", file_path);
     goto fail;
   }
 
@@ -259,23 +259,23 @@ fail:
 }
 
 void chip8_debug(Chip8 *self) {
-  fprintf(stderr, "---- Memory ----\n");
+  eprintf("---- Memory ----\n");
   for(uint32_t i = 1; i <= MEMORY_SIZE; ++i)
-    fprintf(stderr, "0x%.2x%c", self->memory[i-1], i % 32 ? ' ' : '\n');
+    eprintf("0x%.2x%c", self->memory[i-1], i % 32 ? ' ' : '\n');
 
-  fprintf(stderr, "---- Graphics ----\n");
+  eprintf("---- Graphics ----\n");
   for(uint32_t i = 1; i <= GRAPHICS_SIZE; ++i)
-    fprintf(stderr, "0x%.2x%c", self->graphics[i-1], i % 16 ? ' ' : '\n');
+    eprintf("0x%.2x%c", self->graphics[i-1], i % 16 ? ' ' : '\n');
 
-  fprintf(stderr, "\n---- Registers ----\n");
+  eprintf("\n---- Registers ----\n");
   for(uint32_t i = 1; i <= REGISTER_COUNT; ++i)
-    fprintf(stderr, "0x%.2x%c", self->registers[i-1], i % 4 ? ' ' : '\n');
+    eprintf("0x%.2x%c", self->registers[i-1], i % 4 ? ' ' : '\n');
 
-  fprintf(stderr, "\n---- Stack ----\n");
+  eprintf("\n---- Stack ----\n");
   for(uint32_t i = 1; i <= STACK_SIZE; ++i)
-    fprintf(stderr, "0x%.2x\n", self->stack[i-1]);
+    eprintf("0x%.2x\n", self->stack[i-1]);
 
-  fprintf(stderr, "\nIndex: %u\nSP: %u\nPC: %u\n", self->index, self->sp, self->pc);
+  eprintf("\nIndex: %u\nSP: %u\nPC: %u\n", self->index, self->sp, self->pc);
 }
 
 static void step_cycle_alu(InstructionALU op, Chip8 *cpu) {

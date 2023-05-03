@@ -11,6 +11,8 @@
 #endif
 #define sleep Sleep // want to use sleep(...) instead of Sleep(...) to fit conventions
 
+#define eprintf(...) fprintf(stderr, __VA_ARGS__)
+
 #define TRUE  1
 #define FALSE 0
 

@@ -84,7 +84,7 @@ void window_manager_run(WindowManager *self, int argc, char *argv[]) {
   chip8_init(&cpu);
 
   if(argc <= 1) {
-    fprintf(stderr, "Error - no ROM provided");
+    eprintf("Error - no ROM provided");
     return;
   }
   const char *file_path = argv[1];
@@ -95,7 +95,7 @@ void window_manager_run(WindowManager *self, int argc, char *argv[]) {
   while(keep_alive) {
     chip8_cycle(&cpu);
 
-    fprintf(stderr, "opcode = 0x%.4x, pc = 0x%.4x\n", cpu.opcode, cpu.pc);
+    eprintf("opcode = 0x%.4x, pc = 0x%.4x\n", cpu.opcode, cpu.pc);
 
     // event polling
     SDL_Event event = {0};
