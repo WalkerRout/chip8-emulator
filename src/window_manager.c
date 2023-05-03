@@ -1,18 +1,12 @@
 
 #include <stdio.h>
 
-#ifdef _WINDOWS
-  #include <windows.h>
-#else
-  #include <unistd.h>
-  #define Sleep(x) usleep((x)*1000)
-#endif
-#define sleep Sleep // want to use sleep(...) instead of Sleep(...) to fit conventions
-
 #include <SDL2/SDL.h>
 
 #include "window_manager.h"
 #include "chip8.h"
+
+static inline void build_texture(WindowManager *window_manager, Chip8 *cpu);
 
 // returns a bool (0 for fail or 1 for success)
 inline uint8_t window_manager_init(WindowManager *self, WindowManagerOptions *options) {
@@ -100,7 +94,8 @@ void window_manager_run(WindowManager *self, int argc, char *argv[]) {
   uint8_t keep_alive = TRUE;
   while(keep_alive) {
     chip8_cycle(&cpu);
-    fprintf(stderr, "opcode = 0x%.4x\n", cpu.opcode);
+
+    fprintf(stderr, "opcode = 0x%.4x, pc = 0x%.4x\n", cpu.opcode, cpu.pc);
 
     // event polling
     SDL_Event event = {0};
@@ -119,18 +114,10 @@ void window_manager_run(WindowManager *self, int argc, char *argv[]) {
     // rendering
     (void) SDL_RenderClear(self->renderer);
 
-    uint32_t *buffer = NULL;
-    uint32_t pitch = 0;
-    (void) SDL_LockTexture(self->texture, NULL, (void**) &buffer, (int*) &pitch);
-    
-    for(uint32_t i = 0; i < GRAPHICS_SIZE; ++i) {
-      buffer[i] = cpu.graphics[i] == 1 ? 0xFFFFFFFF : 0x000000FF;
-    }
+    build_texture(self, &cpu);
+    SDL_Rect texture_dest = {.x = 0, .y = 0, .w = 1024, .h = 512};
 
-    (void) pitch;
-    (void) SDL_UnlockTexture(self->texture);
-
-    (void) SDL_RenderCopy(self->renderer, self->texture, NULL, NULL);
+    (void) SDL_RenderCopy(self->renderer, self->texture, NULL, &texture_dest);
     (void) SDL_RenderPresent(self->renderer);
 
     // sleep 16 ms
@@ -140,3 +127,15 @@ void window_manager_run(WindowManager *self, int argc, char *argv[]) {
 
 // file local functions
 
+static inline void build_texture(WindowManager *window_manager, Chip8 *cpu) {
+  uint32_t *buffer = NULL;
+  uint32_t pitch = 0;
+    
+  (void) SDL_LockTexture(window_manager->texture, NULL, (void**) &buffer, (int*) &pitch);
+    
+    for(uint32_t i = 0; i < GRAPHICS_SIZE; ++i)
+      buffer[i] = cpu->graphics[i] == 1 ? 0xFFFFFFFF : 0x000000FF;
+
+  (void) pitch;
+  (void) SDL_UnlockTexture(window_manager->texture);
+}

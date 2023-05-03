@@ -181,7 +181,7 @@ static void step_cycle(Chip8 *cpu) {
     x = (cpu->opcode & 0x0F00) >> 8;
     y = (cpu->opcode & 0x00F0) >> 4;
     uint8_t height = cpu->opcode & 0x000F;
-
+    
     uint8_t reg_x = cpu->registers[x];
     uint8_t reg_y = cpu->registers[y];
 
@@ -194,14 +194,14 @@ static void step_cycle(Chip8 *cpu) {
 
         // 0b01010101
         if((pixel & (msb >> j)) != 0) {
-          uint8_t tx = (reg_x + j) % 64; // 64-width
           uint8_t ty = (reg_y + i) % 32; // 32-height
-          uint8_t index = ty*64 + tx;
+          uint8_t tx = (reg_x + j) % 64; // 64-width
+          uint32_t index = ty*64 + tx;
 
           // flip index bits
           cpu->graphics[index] ^= 1;
-          
-          // can only do this because of previous if-statement check  
+
+          // can only do this because of previous if-statement check (only runs on bits that are != 0)
           if(cpu->graphics[index] == 0)
             cpu->registers[0xF] = 1;
         }
@@ -262,6 +262,10 @@ void chip8_debug(Chip8 *self) {
   fprintf(stderr, "---- Memory ----\n");
   for(uint32_t i = 1; i <= MEMORY_SIZE; ++i)
     fprintf(stderr, "0x%.2x%c", self->memory[i-1], i % 32 ? ' ' : '\n');
+
+  fprintf(stderr, "---- Graphics ----\n");
+  for(uint32_t i = 1; i <= GRAPHICS_SIZE; ++i)
+    fprintf(stderr, "0x%.2x%c", self->graphics[i-1], i % 16 ? ' ' : '\n');
 
   fprintf(stderr, "\n---- Registers ----\n");
   for(uint32_t i = 1; i <= REGISTER_COUNT; ++i)
