@@ -100,7 +100,7 @@ void window_manager_run(WindowManager *self, int argc, char *argv[]) {
   uint8_t keep_alive = TRUE;
   while(keep_alive) {
     chip8_cycle(&cpu);
-    fprintf(stderr, "opcode = 0x%.8x\n", cpu.opcode);
+    fprintf(stderr, "opcode = 0x%.4x\n", cpu.opcode);
 
     // event polling
     SDL_Event event = {0};
