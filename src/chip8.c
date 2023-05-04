@@ -59,6 +59,11 @@ void chip8_increment_pc(Chip8 *self) {
 }
 
 void chip8_cycle(Chip8 *self) {
+  if(self->pc+INSTRUCTION_SIZE > 0x999) {
+    eprintf("Error - program counter out of memory bounds\n");
+    return;
+  }
+
   // move current memory data into opcode
   self->opcode = self->memory[self->pc] << 8 | self->memory[self->pc+1]; // ie.. 1234 5678
   step_cycle(self);
@@ -70,6 +75,7 @@ void chip8_cycle(Chip8 *self) {
 static void step_cycle(Chip8 *cpu) {
   Instruction first_nibble = (uint8_t) (cpu->opcode >> 12); // ie.. 1110 1011 0011 1100 -> 0000 0000 0000 1110
 
+  // set these directly to (cpu->opcode & 0x0F00) >> 8 and (cpu->opcode & 0x00F0) >> 4
   uint8_t x = 0x00;
   uint8_t y = 0x00;
 
@@ -83,7 +89,7 @@ static void step_cycle(Chip8 *cpu) {
       cpu->sp -= 1;
       cpu->pc = cpu->stack[cpu->sp];
     } else {
-      eprintf("Unimplemented system instruction called...\n");
+      eprintf("Error - unimplemented opcode 0x%.4x\n", cpu->opcode);
     }
 
     chip8_increment_pc(cpu);
@@ -236,7 +242,9 @@ static void step_cycle(Chip8 *cpu) {
 }
 
 void chip8_load_rom(Chip8 *self, const char *file_path) {
-  FILE *file = fopen(file_path, "r");
+  eprintf("Loading ROM from %s...\n", file_path);
+
+  FILE *file = fopen(file_path, "rb");
   if(file == NULL) {
     eprintf("Error - failed to load file `%s`\n", file_path);
     goto fail;
@@ -247,12 +255,14 @@ void chip8_load_rom(Chip8 *self, const char *file_path) {
   long file_size = ftell(file);
   if(file_size < 0) goto fail;
 
-  if (fseek(file, 0, SEEK_SET) < 0) goto fail;
+  if(fseek(file, 0, SEEK_SET) < 0) goto fail;
 
-  if(self->index + file_size > MEMORY_SIZE) goto fail;
+  if(self->pc + file_size > MEMORY_SIZE) goto fail;
 
   fread(&self->memory[self->pc], 1, file_size, file);
   if(ferror(file)) goto fail;
+
+  eprintf("Successfully loaded ROM\n");
 
 fail:
   if(file) fclose(file);
@@ -260,10 +270,12 @@ fail:
 
 void chip8_debug(Chip8 *self) {
   eprintf("---- Memory ----\n");
-  for(uint32_t i = 1; i <= MEMORY_SIZE; ++i)
+  for(uint32_t i = 1; i <= MEMORY_SIZE; ++i){
     eprintf("0x%.2x%c", self->memory[i-1], i % 32 ? ' ' : '\n');
+    if(i == 0x200) eprintf("\n\t-- 0x200 --\n\n");
+  }
 
-  eprintf("---- Graphics ----\n");
+  eprintf("\n---- Graphics ----\n");
   for(uint32_t i = 1; i <= GRAPHICS_SIZE; ++i)
     eprintf("0x%.2x%c", self->graphics[i-1], i % 16 ? ' ' : '\n');
 
