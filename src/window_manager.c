@@ -79,7 +79,7 @@ inline int window_manager_deinit(WindowManager *self) {
   return EXIT_SUCCESS;
 }
 
-void window_manager_run(WindowManager *self, int argc, char *argv[]) {
+void window_manager_run(WindowManager *self, int argc, char *argv[]) {  
   Chip8 cpu = {0};
   chip8_init(&cpu);
 
@@ -90,11 +90,10 @@ void window_manager_run(WindowManager *self, int argc, char *argv[]) {
   const char *file_path = argv[1];
 
   chip8_load_rom(&cpu, file_path);
-  printf("pc = %x\n", cpu.pc);
 
   uint8_t keep_alive = TRUE;
   while(keep_alive) {
-    eprintf("opcode = 0x%.4x, pc = 0x%.4x\n", cpu.memory[cpu.pc] << 8 | cpu.memory[cpu.pc+1], cpu.pc);
+    //eprintf("opcode = 0x%.4x, pc = 0x%.4x\n", cpu.memory[cpu.pc] << 8 | cpu.memory[cpu.pc+1], cpu.pc);
     chip8_cycle(&cpu);
 
     //chip8_debug(&cpu);
@@ -122,7 +121,7 @@ void window_manager_run(WindowManager *self, int argc, char *argv[]) {
     (void) SDL_RenderPresent(self->renderer);
 
     // sleep 16 ms
-    sleep(16);
+    //sleep(16);
   }
 }
 

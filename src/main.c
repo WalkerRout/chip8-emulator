@@ -18,8 +18,14 @@ int main(int argc, char *argv[]) {
 
   WindowManager window_manager = {0};
   if(!window_manager_init(&window_manager, &window_options)) return 1;
+  eprintf("Window manager initialized...\n");
 
+  eprintf("Emulator running...\n");
   window_manager_run(&window_manager, argc, argv);
+  eprintf("Emulator shutting down...\n");
 
-  return window_manager_deinit(&window_manager);
+  int result = window_manager_deinit(&window_manager);
+  eprintf("Window manager deinitialized...\n");
+  
+  return result;
 }

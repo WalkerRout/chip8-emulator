@@ -3,7 +3,7 @@ UNAME = $(shell uname)
 CC = gcc
 OBJS = src/*.c
 OBJ = bin/chip8
-CFLAGS = -Wall -Wextra -Wshadow #ALL WARNINGS!
+CFLAGS = -O3 -Wall -Wextra -Wshadow #ALL WARNINGS! 
 
 ifeq ($(UNAME), Linux)
   LIBS = -lSDL2main -lSDL2
