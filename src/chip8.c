@@ -29,6 +29,8 @@ const unsigned char chip8_fontset[FONTSET_SIZE] = {
   0xF0, 0x80, 0xF0, 0x80, 0x80, // F
 };
 
+static inline void decrement_timers(Chip8 *cpu);
+static inline void increment_pc(Chip8 *cpu);
 static void step_cycle(Chip8 *cpu);
 static void step_cycle_alu(InstructionALU op, Chip8 *cpu);
 static void step_cycle_misc(InstructionMISC op, Chip8 *cpu);
@@ -54,11 +56,7 @@ void chip8_init(Chip8 *self) {
     self->memory[i] = chip8_fontset[i];
 }
 
-void chip8_increment_pc(Chip8 *self) {
-  self->pc += INSTRUCTION_SIZE;
-}
-
-void chip8_cycle(Chip8 *self) {
+inline void chip8_cycle(Chip8 *self) {
   if(self->pc+INSTRUCTION_SIZE > 0x999) {
     eprintf("Error - program counter out of memory bounds\n");
     return;
@@ -76,8 +74,8 @@ static void step_cycle(Chip8 *cpu) {
   Instruction first_nibble = (uint8_t) (cpu->opcode >> 12); // ie.. 1110 1011 0011 1100 -> 0000 0000 0000 1110
 
   // set these directly to (cpu->opcode & 0x0F00) >> 8 and (cpu->opcode & 0x00F0) >> 4
-  uint8_t x = 0x00;
-  uint8_t y = 0x00;
+  uint8_t x = (cpu->opcode & 0x0F00) >> 8;
+  uint8_t y = (cpu->opcode & 0x00F0) >> 4;
 
   switch(first_nibble) {
   case INSTRUCTION_CLS_RET: // cls & ret
@@ -92,59 +90,57 @@ static void step_cycle(Chip8 *cpu) {
       eprintf("Error - unimplemented opcode 0x%.4x\n", cpu->opcode);
     }
 
-    chip8_increment_pc(cpu);
+    decrement_timers(cpu);
+    increment_pc(cpu);
     break;
 
   case INSTRUCTION_JP1:
     // 0x1nnn -> set nnn to be jump addr
     cpu->pc = cpu->opcode & 0x0FFF;
+    decrement_timers(cpu);
     break;
 
   case INSTRUCTION_CALL:
     cpu->stack[cpu->sp] = cpu->pc;
     cpu->sp += 1;
     cpu->pc = cpu->opcode & 0x0FFF;
+    decrement_timers(cpu);
     break;
 
   case INSTRUCTION_SE1:
-    x = (cpu->opcode & 0x0F00) >> 8; // shift masked byte to the end
-
     if(cpu->registers[x] == (cpu->opcode & 0x00FF))
-      chip8_increment_pc(cpu);
+      increment_pc(cpu);
 
-    chip8_increment_pc(cpu);
+    decrement_timers(cpu);
+    increment_pc(cpu);
     break;
 
   case INSTRUCTION_SNE1:
-    x = (cpu->opcode & 0x0F00) >> 8;
-
     if(cpu->registers[x] != (cpu->opcode & 0x00FF))
-      chip8_increment_pc(cpu);
+      increment_pc(cpu);
 
-    chip8_increment_pc(cpu);
+    decrement_timers(cpu);
+    increment_pc(cpu);
     break;
 
   case INSTRUCTION_SE2:
-    x = (cpu->opcode & 0x0F00) >> 8;
-    y = (cpu->opcode & 0x00F0) >> 4;
-
     if(cpu->registers[x] == cpu->registers[y])
-      chip8_increment_pc(cpu);
+      increment_pc(cpu);
 
-    chip8_increment_pc(cpu);
+    decrement_timers(cpu);
+    increment_pc(cpu);
     break;
 
   case INSTRUCTION_LD1:
-    x = (cpu->opcode & 0x0F00) >> 8;
     cpu->registers[x] = (uint8_t) (cpu->opcode & 0x00FF);
-
-    chip8_increment_pc(cpu);
+    decrement_timers(cpu);
+    increment_pc(cpu);
     break;
 
   case INSTRUCTION_ADD:
-    x = (cpu->opcode & 0x0F00) >> 8;
     cpu->registers[x] += (uint8_t) (cpu->opcode & 0x00FF);
-    chip8_increment_pc(cpu);
+    decrement_timers(cpu);
+    increment_pc(cpu);
     break;
 
   case INSTRUCTION_ALU_SET:;
@@ -153,39 +149,34 @@ static void step_cycle(Chip8 *cpu) {
     break;
 
   case INSTRUCTION_SNE2:
-    x = (cpu->opcode & 0x0F00) >> 8;
-    y = (cpu->opcode & 0x00F0) >> 4;
-
     if(cpu->registers[x] != cpu->registers[y])
-      chip8_increment_pc(cpu);
+      increment_pc(cpu);
 
-    chip8_increment_pc(cpu);
+    decrement_timers(cpu);
+    increment_pc(cpu);
     break;
 
   case INSTRUCTION_LD2:
     cpu->index = cpu->opcode & 0x0FFF;
-    chip8_increment_pc(cpu);
+    decrement_timers(cpu);
+    increment_pc(cpu);
     break;
 
   case INSTRUCTION_JP2:
     cpu->pc = (cpu->opcode & 0x0FFF) + (uint16_t) cpu->registers[0];
+    decrement_timers(cpu);
     break;
 
-  case INSTRUCTION_RND:;
-    uint8_t max = 255;
-    uint8_t min = 0;
+  case INSTRUCTION_RND:
+    cpu->registers[x] = (uint8_t) ((rand() % 8) & (cpu->opcode & 0x00FF));
 
-    x = (cpu->opcode & 0x0F00) >> 8;
-    cpu->registers[x] = (rand()%max + min) & (uint8_t) (cpu->opcode & 0x00FF);
-
-    chip8_increment_pc(cpu);
+    decrement_timers(cpu);
+    increment_pc(cpu);
     break;
 
   case INSTRUCTION_DRW:
     cpu->registers[0xF] = 0;
 
-    x = (cpu->opcode & 0x0F00) >> 8;
-    y = (cpu->opcode & 0x00F0) >> 4;
     uint8_t height = cpu->opcode & 0x000F;
 
     uint8_t reg_x = cpu->registers[x];
@@ -214,26 +205,27 @@ static void step_cycle(Chip8 *cpu) {
       }
     }
 
-    chip8_increment_pc(cpu);
+    decrement_timers(cpu);
+    increment_pc(cpu);
     break;
 
-  case INSTRUCTION_SKP_SKPN:
-    x = (cpu->opcode & 0x0F00) >> 8;
+  case INSTRUCTION_SKP_SKPN:;
     uint8_t skp_op = cpu->opcode & 0x00FF;
 
     if(skp_op == 0x9E) {
       if(cpu->keys[cpu->registers[x]] == 1)
-        chip8_increment_pc(cpu);
+        increment_pc(cpu);
     } else if (skp_op == 0xA1) {
       if(cpu->keys[cpu->registers[x]] != 1)
-        chip8_increment_pc(cpu);
+        increment_pc(cpu);
     }
 
-    chip8_increment_pc(cpu);
+    decrement_timers(cpu);
+    increment_pc(cpu);
     break;
 
   case INSTRUCTION_MISC_SET:;
-    InstructionMISC misc_op = (uint8_t) (cpu->opcode & 0x000F);
+    InstructionMISC misc_op = (uint8_t) (cpu->opcode & 0x00FF);
     step_cycle_misc(misc_op, cpu);
     break;
 
@@ -271,8 +263,8 @@ fail:
 void chip8_debug(Chip8 *self) {
   eprintf("---- Memory ----\n");
   for(uint32_t i = 1; i <= MEMORY_SIZE; ++i){
-    eprintf("0x%.2x%c", self->memory[i-1], i % 32 ? ' ' : '\n');
     if(i == 0x200) eprintf("\n\t-- 0x200 --\n\n");
+    eprintf("0x%.2x%c", self->memory[i-1], i % 32 ? ' ' : '\n');
   }
 
   eprintf("\n---- Graphics ----\n");
@@ -288,6 +280,20 @@ void chip8_debug(Chip8 *self) {
     eprintf("0x%.2x\n", self->stack[i-1]);
 
   eprintf("\nIndex: %u\nSP: %u\nPC: %u\n", self->index, self->sp, self->pc);
+}
+
+static inline void decrement_timers(Chip8 *cpu) {
+  if(cpu->delay_timer > 0) 
+    cpu->delay_timer -= 1;
+
+  if(cpu->sound_timer > 0) {
+    // TODO; sound
+    cpu->sound_timer -= 1;
+  }
+}
+
+static inline void increment_pc(Chip8 *cpu) {
+  cpu->pc += INSTRUCTION_SIZE;
 }
 
 static void step_cycle_alu(InstructionALU op, Chip8 *cpu) {
@@ -343,7 +349,8 @@ static void step_cycle_alu(InstructionALU op, Chip8 *cpu) {
   default: {}
   }
 
-  chip8_increment_pc(cpu);
+  decrement_timers(cpu);
+  increment_pc(cpu);
 }
 
 static void step_cycle_misc(InstructionMISC op, Chip8 *cpu) {
@@ -365,7 +372,7 @@ static void step_cycle_misc(InstructionMISC op, Chip8 *cpu) {
       }
     }
 
-    // return immediately, do not run chip8_increment_pc()
+    // return immediately, do not run increment_pc()
     if(!key_pressed) return;
     break;
 
@@ -400,7 +407,7 @@ static void step_cycle_misc(InstructionMISC op, Chip8 *cpu) {
       cpu->memory[cpu->index + i] = cpu->registers[i];
     break;
 
-  case INSTRUCTION_MISC_LD8:
+  case 0x65:
     // load memory into registers up to x (inclusive)
     for(uint32_t i = 0; i <= x; ++i)
       cpu->registers[i] = cpu->memory[cpu->index + i];
@@ -409,5 +416,6 @@ static void step_cycle_misc(InstructionMISC op, Chip8 *cpu) {
   default: {}
   }
 
-  chip8_increment_pc(cpu);
+  decrement_timers(cpu);
+  increment_pc(cpu);
 }

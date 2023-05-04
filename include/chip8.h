@@ -30,7 +30,6 @@ typedef struct Chip8 {
 
 void chip8_init(Chip8 *self);
 void chip8_cycle(Chip8 *self);
-void chip8_increment_pc(Chip8 *self); // increment by instruction_size = 2 bytes
 void chip8_load_rom(Chip8 *self, const char *file_path);
 void chip8_debug(Chip8 *self);
 

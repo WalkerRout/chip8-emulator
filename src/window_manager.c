@@ -90,13 +90,14 @@ void window_manager_run(WindowManager *self, int argc, char *argv[]) {
   const char *file_path = argv[1];
 
   chip8_load_rom(&cpu, file_path);
+  printf("pc = %x\n", cpu.pc);
 
   uint8_t keep_alive = TRUE;
   while(keep_alive) {
+    eprintf("opcode = 0x%.4x, pc = 0x%.4x\n", cpu.memory[cpu.pc] << 8 | cpu.memory[cpu.pc+1], cpu.pc);
     chip8_cycle(&cpu);
 
-    eprintf("opcode = 0x%.4x, pc = 0x%.4x\n", cpu.opcode, cpu.pc);
-    
+    //chip8_debug(&cpu);
     // event polling
     SDL_Event event = {0};
     while(SDL_PollEvent(&event) > 0) {
