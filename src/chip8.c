@@ -251,7 +251,7 @@ void chip8_load_rom(Chip8 *self, const char *file_path) {
 
   if(self->pc + file_size > MEMORY_SIZE) goto fail;
 
-  fread(&self->memory[self->pc], 1, file_size, file);
+  (void) fread(&self->memory[self->pc], 1, file_size, file);
   if(ferror(file)) goto fail;
 
   eprintf("Successfully loaded ROM\n");
