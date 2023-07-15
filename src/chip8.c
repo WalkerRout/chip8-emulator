@@ -229,7 +229,7 @@ static void step_cycle(Chip8 *cpu) {
 
   case INSTRUCTION_MISC_SET:;
     InstructionMISC misc_op = (uint8_t) (cpu->opcode & 0x00FF);
-    step_cycle_misc(misc_op, CPU);
+    step_cycle_misc(misc_op, cpu);
     
     decrement_timers(cpu);
     increment_pc(cpu);
