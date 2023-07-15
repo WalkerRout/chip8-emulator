@@ -146,6 +146,9 @@ static void step_cycle(Chip8 *cpu) {
   case INSTRUCTION_ALU_SET:;
     InstructionALU alu_op = (uint8_t) (cpu->opcode & 0x000F);
     step_cycle_alu(alu_op, cpu);
+
+    decrement_timers(cpu);
+    increment_pc(cpu);
     break;
 
   case INSTRUCTION_SNE2:
@@ -226,7 +229,10 @@ static void step_cycle(Chip8 *cpu) {
 
   case INSTRUCTION_MISC_SET:;
     InstructionMISC misc_op = (uint8_t) (cpu->opcode & 0x00FF);
-    step_cycle_misc(misc_op, cpu);
+    step_cycle_misc(misc_op, CPU);
+    
+    decrement_timers(cpu);
+    increment_pc(cpu);
     break;
 
   default: {}
@@ -348,9 +354,6 @@ static void step_cycle_alu(InstructionALU op, Chip8 *cpu) {
 
   default: {}
   }
-
-  decrement_timers(cpu);
-  increment_pc(cpu);
 }
 
 static void step_cycle_misc(InstructionMISC op, Chip8 *cpu) {
@@ -415,7 +418,4 @@ static void step_cycle_misc(InstructionMISC op, Chip8 *cpu) {
 
   default: {}
   }
-
-  decrement_timers(cpu);
-  increment_pc(cpu);
 }
